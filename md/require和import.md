@@ -2,7 +2,7 @@
  * @Author: tangdaoyong
  * @Date: 2021-01-18 11:15:34
  * @LastEditors: tangdaoyong
- * @LastEditTime: 2021-01-18 11:53:47
+ * @LastEditTime: 2021-01-18 12:08:38
  * @Description: require 和 import 
 -->
 # require 和 import 
@@ -52,6 +52,65 @@ module.exports = class math {
 };
 ```
 
+#### CommonJS中module.exports 与 exports的区别
+Module.exports
+
+The module.exports object is created by the Module system. Sometimes this is not acceptable; many want their module to be an instance of some class. To do this, assign the desired export object to module.exports. Note that assigning the desired object to exports will simply rebind the local exports variable, which is probably not what you want to do.
+
+译文：module.exports对象是由模块系统创建的。 有时这是难以接受的；许多人希望他们的模块成为某个类的实例。 为了实现这个，需要将期望导出的对象赋值给module.exports。 注意，将期望的对象赋值给exports会简单地重新绑定到本地exports变量上，这可能不是你想要的。
+
+Module.exports
+
+The exports variable is available within a module’s file-level scope, and is assigned the value of module.exports before the module is evaluated. It allows a shortcut, so that module.exports.f = … can be written more succinctly as exports.f = …. However, be aware that like any variable, if a new value is assigned to exports, it is no longer bound to module.exports:
+
+译文：exports变量是在模块的文件级别作用域内有效的，它在模块被执行前被赋于 module.exports 的值。它有一个快捷方式，以便 module.exports.f = … 可以被更简洁地写成exports.f = …。 注意，就像任何变量，如果一个新的值被赋值给exports，它就不再绑定到module.exports(其实是exports.属性会自动挂载到没有命名冲突的module.exports.属性)
+
+从[Api文档](http://nodejs.cn/api/modules.html#modules_module_exports)上面的可以看出，从require导入方式去理解，关键有两个变量(全局变量module.exports，局部变量exports)、一个返回值(module.exports)
+
+```js
+function require(...) {
+var module = { exports: {} };
+((module, exports) => {
+// 你的被引入代码 Start
+// var exports = module.exports = {}; (默认都有的)
+function some_func() {};
+exports = some_func;
+// 此时，exports不再挂载到module.exports，
+// export将导出{}默认对象
+module.exports = some_func;
+// 此时，这个模块将导出some_func对象，覆盖exports上的some_func
+// 你的被引入代码 End
+})(module, module.exports);
+// 不管是exports还是module.exports，最后返回的还是module.exports
+return module.exports;
+}
+```
+```js
+console.log(exports); // {}
+console.log(module.exports); // {}
+console.log(exports === module.exports); // true
+console.log(exports == module.exports); // true
+console.log(module);
+/**
+Module {
+id: '.',
+exports: {},
+parent: null,
+filename: '/Users/larben/Desktop/demo.js',
+loaded: false,
+children: [],
+paths:
+[ '/Users/larben/Desktop/node_modules',
+'/Users/larben/node_modules',
+'/Users/node_modules',
+'/node_modules' ] }
+*/
+```
+
+**注意**
+
+每个js文件一创建，都有一个var exports = module.exports = {},使exports和module.exports都指向一个空对象。
+module.exports和exports所指向的内存地址相同
 ### AMD
 
 require.js和cujo.js就是用AMD思想。
@@ -135,6 +194,13 @@ define(function(require, exports, module) {
    b.doSomething();    // 依赖就近，延迟执行
 });
 ```
+
+### CMD与AMD区别
+AMD和CMD最大的区别是对依赖模块的执行时机处理不同，而不是加载的时机或者方式不同，二者皆为异步加载模块。
+
+AMD依赖前置，js可以方便知道依赖模块是谁，立即加载；
+
+而CMD就近依赖，需要使用把模块变为字符串解析一遍才知道依赖了那些模块，这也是很多人诟病CMD的一点，牺牲性能来带来开发的便利性，实际上解析模块用的时间短到可以忽略。
 
 ## import
 
